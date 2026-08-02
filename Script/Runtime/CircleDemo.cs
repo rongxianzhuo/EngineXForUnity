@@ -85,6 +85,10 @@ namespace EngineX.Demo
     public class CircleDemo : IGame
     {
 
+        // RenderData 指向的 Resources 资源路径（在 Assets/Resources 下创建同名资源）
+        private const string MeshResourcePath = "Demo/Sphere";
+        private const string MaterialResourcePath = "Demo/BaseMaterial";
+
         private readonly World _world = new World();
         private readonly SystemsGroup _group = new SystemsGroup();
         private readonly OrbitSystem _orbitSystem = new OrbitSystem();
@@ -105,6 +109,8 @@ namespace EngineX.Demo
                     position,
                     new EngineXMath.Vector3(FP.Zero, angle * FP.Rad2Deg, FP.Zero),
                     new EngineXMath.Vector3(scale, scale, scale)));
+                // 渲染数据组件：声明渲染方式（网格/材质来自 Resources 路径）
+                _world.AddComponent(e, new RenderData(MeshResourcePath, MaterialResourcePath));
             }
 
             _group.Add(_orbitSystem);
