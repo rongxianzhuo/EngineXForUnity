@@ -110,7 +110,12 @@ namespace EngineX.Demo
                 _world.AddComponent(e, new RenderData(meshPath, MaterialResourcePath));
             }
 
+            // 输入实体：声明"我需要输入"，由适配层 InputBridgeSystem 每帧填充
+            var inputEntity = _world.CreateEntity();
+            _world.AddComponent(inputEntity, new InputData());
+
             _group.Add(_orbitSystem);
+            _group.Add(new CameraControlSystem());
             _group.Create(_world);
 
             // 相机实体：变换来自 TransformData（俯视原点），参数来自 CameraData

@@ -11,6 +11,7 @@ namespace EngineX.Demo
     public class UnityAdapter : MonoBehaviour
     {
         private readonly CircleDemo _circleDemo = new CircleDemo();
+        private readonly SystemsGroup _inputGroup = new SystemsGroup();
         private readonly SystemsGroup _renderGroup = new SystemsGroup();
 
         private World _world;
@@ -18,6 +19,8 @@ namespace EngineX.Demo
         private void Awake()
         {
             _world = _circleDemo.Create();
+            _inputGroup.Add(new InputBridgeSystem());
+            _inputGroup.Create(_world);
             _renderGroup.Add(new DemoRenderSystem(new DummyResourceLoader()));
             _renderGroup.Add(new CameraAdapterSystem());
             _renderGroup.Create(_world);
@@ -25,6 +28,8 @@ namespace EngineX.Demo
 
         private void FixedUpdate()
         {
+            // 输入采样必须在游戏模拟之前，保证模拟读到一致输入
+            _inputGroup.Update(_world);
             _circleDemo.Update();
         }
 
@@ -36,6 +41,7 @@ namespace EngineX.Demo
         private void OnDestroy()
         {
             _circleDemo.Destroy();
+            _inputGroup.Destroy();
             _renderGroup.Destroy();
         }
     }
