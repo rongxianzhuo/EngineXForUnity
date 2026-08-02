@@ -51,10 +51,7 @@ namespace EngineX.Demo
         public void OnDestroy(ref SystemState state)
         {
             _chunks.Dispose();
-            if (_camera)
-            {
-                UnityEngine.Object.Destroy(_camera.gameObject);
-            }
+            // 相机由场景持有，适配层只同步不销毁
         }
 
         private void Apply(ref CameraData data)
