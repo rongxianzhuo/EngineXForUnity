@@ -116,7 +116,9 @@ namespace EngineX.Demo
                 // 渲染前剔除用的包围盒，覆盖轨道范围即可
                 worldBounds = new Bounds(Vector3.zero, Vector3.one * 1000f),
             };
-            Graphics.RenderMeshInstanced(rp, _mesh, 0, _drawBuffer, count, null);
+            // 注意：RenderMeshInstanced 没有 MaterialPropertyBlock 参数，
+            // 需要逐实例属性时通过 RenderParams.matProps 传入
+            Graphics.RenderMeshInstanced(rp, _mesh, 0, _drawBuffer, count);
 #else
             Graphics.DrawMeshInstanced(_mesh, 0, material, _drawBuffer, count, null,
                 ShadowCastingMode.On, true);
