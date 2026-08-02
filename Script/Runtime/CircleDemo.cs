@@ -23,12 +23,11 @@ namespace EngineX.Demo
 
     /// <summary>
     /// 渲染数据组件：声明该实体需要被渲染，并携带渲染参数。
-    /// Scale 控制渲染尺寸，ColorIndex 用于在渲染调色板中选色。
+    /// Scale 控制渲染尺寸。
     /// </summary>
     public struct RendererData : IComponentData
     {
         public float Scale;
-        public int ColorIndex;
     }
 
     // ==================== 轨道 Job / System ====================
@@ -110,24 +109,14 @@ namespace EngineX.Demo
     {
         private const int MaxInstancesPerDraw = 1023;
 
-        /// <summary>渲染调色板，按 RendererData.ColorIndex 取色。</summary>
-        private static readonly Color[] Palette =
-        {
-            new Color(0.95f, 0.55f, 0.45f),
-            new Color(0.45f, 0.80f, 0.95f),
-            new Color(0.60f, 0.95f, 0.55f),
-            new Color(0.95f, 0.90f, 0.50f),
-        };
-
         private readonly OrbitSystem _orbitSystem;
         private readonly Material _baseMaterial;
-        
+
         private EntityQuery _query;
         private NativeArray<ChunkHandle> _chunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
 
-        // 渲染资源：网格与调色板材质，由系统创建并持有
+        // 渲染资源：网格由系统创建并持有，材质由外部注入
         private Mesh _mesh;
-        private Material[] _materials;
         private readonly Matrix4x4[] _drawBuffer = new Matrix4x4[MaxInstancesPerDraw];
 
         public DemoRenderSystem(OrbitSystem orbitSystem, Material baseMaterial)
@@ -145,15 +134,8 @@ namespace EngineX.Demo
             _mesh = primitive.GetComponent<MeshFilter>().sharedMesh;
             UnityEngine.Object.Destroy(primitive);
 
-            // 为调色板中的每种颜色准备一个可实例化的材质
-            _materials = new Material[Palette.Length];
-            for (int i = 0; i < Palette.Length; i++)
-            {
-                var mat = new Material(_baseMaterial);
-                mat.color = Palette[i];
-                mat.enableInstancing = true;
-                _materials[i] = mat;
-            }
+            // 实例化渲染要求材质开启 GPU Instancing（运行时修改不会落盘到材质资产）
+            _baseMaterial.enableInstancing = true;
         }
 
         public void OnUpdate(ref SystemState state)
@@ -169,13 +151,8 @@ namespace EngineX.Demo
             }
             _query.ToChunkArray(_chunks);
 
-            // 按颜色分组，同色实例合并到同一批
-            var batches = new List<Matrix4x4>[Palette.Length];
-            for (int c = 0; c < batches.Length; c++)
-            {
-                batches[c] = new List<Matrix4x4>();
-            }
-
+            // 收集所有实例的变换矩阵
+            var matrices = new List<Matrix4x4>();
             for (int i = 0; i < _chunks.Length; i++)
             {
                 var chunk = _chunks[i].Chunk;
@@ -184,52 +161,31 @@ namespace EngineX.Demo
                     ref var pos = ref chunk.GetComponentRef<CirclePosition>(e);
                     ref var rot = ref chunk.GetComponentRef<CircleRotation>(e);
                     ref var renderer = ref chunk.GetComponentRef<RendererData>(e);
-                    int colorIndex = Mathf.Abs(renderer.ColorIndex) % Palette.Length;
-                    batches[colorIndex].Add(Matrix4x4.TRS(
+                    matrices.Add(Matrix4x4.TRS(
                         new Vector3(pos.X, pos.Y, pos.Z),
                         Quaternion.Euler(0f, rot.Angle * Mathf.Rad2Deg, 0f),
                         Vector3.one * renderer.Scale));
                 }
             }
 
-            // 逐颜色分批实例化绘制
-            for (int c = 0; c < Palette.Length; c++)
+            // 超出单次上限时自动分批，统一用 baseMaterial 实例化绘制
+            for (int b = 0; b < matrices.Count; b += _drawBuffer.Length)
             {
-                var list = batches[c];
-                if (list.Count == 0)
-                {
-                    continue;
-                }
-                for (int b = 0; b < list.Count; b += _drawBuffer.Length)
-                {
-                    int batchCount = Mathf.Min(_drawBuffer.Length, list.Count - b);
-                    list.CopyTo(b, _drawBuffer, 0, batchCount);
-                    DrawInstanced(c, batchCount);
-                }
+                int batchCount = Mathf.Min(_drawBuffer.Length, matrices.Count - b);
+                matrices.CopyTo(b, _drawBuffer, 0, batchCount);
+                DrawInstanced(batchCount);
             }
         }
 
         public void OnDestroy(ref SystemState state)
         {
             _chunks.Dispose();
-            if (_materials == null)
-            {
-                return;
-            }
-            foreach (var mat in _materials)
-            {
-                if (mat != null)
-                {
-                    UnityEngine.Object.Destroy(mat);
-                }
-            }
         }
 
-        private void DrawInstanced(int colorIndex, int count)
+        private void DrawInstanced(int count)
         {
-            var material = _materials[colorIndex];
 #if UNITY_2022_2_OR_NEWER
-            var rp = new RenderParams(material)
+            var rp = new RenderParams(_baseMaterial)
             {
                 shadowCastingMode = ShadowCastingMode.On,
                 receiveShadows = true,
@@ -240,7 +196,7 @@ namespace EngineX.Demo
             // 需要逐实例属性时通过 RenderParams.matProps 传入
             Graphics.RenderMeshInstanced(rp, _mesh, 0, _drawBuffer, count);
 #else
-            Graphics.DrawMeshInstanced(_mesh, 0, material, _drawBuffer, count, null,
+            Graphics.DrawMeshInstanced(_mesh, 0, _baseMaterial, _drawBuffer, count, null,
                 ShadowCastingMode.On, true);
 #endif
         }
@@ -274,7 +230,6 @@ namespace EngineX.Demo
                 _world.AddComponent(e, new RendererData
                 {
                     Scale = 0.35f + 0.15f * (i % 3),
-                    ColorIndex = i % 4,
                 });
             }
 
