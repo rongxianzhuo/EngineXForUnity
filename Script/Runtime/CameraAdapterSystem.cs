@@ -7,8 +7,9 @@ using UnityEngine;
 namespace EngineX.Demo
 {
     /// <summary>
-    /// 相机适配系统：读取游戏侧的 CameraData 组件，同步到 Unity Camera。
-    /// 语义：任何挂 CameraData 的实体即视为相机；多个时取第一个（多相机后续再定）。
+    /// 相机适配系统：读取游戏侧的 TransformData + CameraData，
+    /// 同步到 Unity Camera。位置/旋转来自 TransformData，相机参数来自 CameraData。
+    /// 语义：任何挂 (TransformData, CameraData) 的实体即视为相机；多个时取第一个。
     /// </summary>
     public sealed class CameraAdapterSystem : ISystem
     {
@@ -22,7 +23,7 @@ namespace EngineX.Demo
 
         public void OnCreate(ref SystemState state)
         {
-            _query = state.World.Query<CameraData>();
+            _query = state.World.Query<TransformData, CameraData>();
             _camera = Camera.main;
             if (!_camera) Debug.LogError("Camera is not found.");
         }
@@ -44,24 +45,22 @@ namespace EngineX.Demo
                 return;
             }
 
-            ref var data = ref _chunks[0].Chunk.GetComponentRef<CameraData>(0);
-            Apply(ref data);
+            ref var transform = ref _chunks[0].Chunk.GetComponentRef<TransformData>(0);
+            ref var cameraData = ref _chunks[0].Chunk.GetComponentRef<CameraData>(0);
+
+            _camera.transform.position = UnityConvert.ToVector3(transform.Position);
+            _camera.transform.rotation = UnityConvert.ToQuaternion(transform.Rotation);
+            // 防御：default(CameraData) 时 Fov/Near/Far 为 0，回退默认值
+            _camera.fieldOfView = cameraData.Fov > FP.Zero ? cameraData.Fov.Single() : DefaultFov;
+            _camera.nearClipPlane = cameraData.NearClip > FP.Zero ? cameraData.NearClip.Single() : DefaultNear;
+            _camera.farClipPlane = cameraData.FarClip > FP.Zero ? cameraData.FarClip.Single() : DefaultFar;
+            _camera.orthographic = cameraData.Projection == CameraProjection.Orthographic;
         }
 
         public void OnDestroy(ref SystemState state)
         {
             _chunks.Dispose();
             // 相机由场景持有，适配层只同步不销毁
-        }
-
-        private void Apply(ref CameraData data)
-        {
-            _camera.transform.position = UnityConvert.ToVector3(data.Position);
-            _camera.transform.rotation = UnityConvert.ToQuaternion(data.Rotation);
-            _camera.fieldOfView = data.Fov > FP.Zero ? data.Fov.Single() : DefaultFov;
-            _camera.nearClipPlane = data.NearClip > FP.Zero ? data.NearClip.Single() : DefaultNear;
-            _camera.farClipPlane = data.FarClip > FP.Zero ? data.FarClip.Single() : DefaultFar;
-            _camera.orthographic = data.Projection == CameraProjection.Orthographic;
         }
     }
 }
