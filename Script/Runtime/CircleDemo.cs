@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using EngineX.ECS;
 using EngineX.Jobs;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace EngineX.Demo
 {
@@ -20,26 +22,11 @@ namespace EngineX.Demo
     }
 
     /// <summary>
-    /// 渲染组件：声明该实体需要被渲染为一个圆球。
-    /// Scale 控制渲染尺寸，ColorIndex 用于在渲染层的调色板中选色。
+    /// 渲染数据组件：声明该实体需要被渲染，并携带渲染参数。
+    /// Scale 控制渲染尺寸，ColorIndex 用于在渲染调色板中选色。
     /// </summary>
-    public struct CircleRender : IComponentData
+    public struct RendererData : IComponentData
     {
-        public float Scale;
-        public int ColorIndex;
-    }
-
-    /// <summary>
-    /// 渲染实例（blittable，可放入 NativeArray）。
-    /// 由 ECS 侧的 RenderCollectSystem 收集生成，Unity 渲染层读取后绘制。
-    /// Angle 为弧度，绕 Y 轴。
-    /// </summary>
-    public struct CircleRenderInstance
-    {
-        public float PosX;
-        public float PosY;
-        public float PosZ;
-        public float Angle;
         public float Scale;
         public int ColorIndex;
     }
@@ -115,32 +102,60 @@ namespace EngineX.Demo
         }
     }
 
-    // ==================== 渲染收集 System ====================
-    // 职责：把 ECS 中的渲染组件（CircleRender + 位置/旋转）收集成
-    // 渲染实例数组，作为 ECS 世界输出给 Unity 渲染层的数据缓冲。
+    // ==================== 渲染 System ====================
+    // 职责：把 ECS 中的位置/旋转/渲染数据组件转换成真正的
+    // Unity 渲染（GPU Instancing 绘制球体）。
 
-    public sealed class RenderCollectSystem : ISystem
+    public sealed class DemoRenderSystem : ISystem
     {
+        private const int MaxInstancesPerDraw = 1023;
+
+        /// <summary>渲染调色板，按 RendererData.ColorIndex 取色。</summary>
+        private static readonly Color[] Palette =
+        {
+            new Color(0.95f, 0.55f, 0.45f),
+            new Color(0.45f, 0.80f, 0.95f),
+            new Color(0.60f, 0.95f, 0.55f),
+            new Color(0.95f, 0.90f, 0.50f),
+        };
+
         private readonly OrbitSystem _orbitSystem;
         private EntityQuery _query;
         private NativeArray<ChunkHandle> _chunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
 
-        /// <summary>渲染实例缓冲，Unity 渲染层每帧读取。</summary>
-        public NativeArray<CircleRenderInstance> Instances = new NativeArray<CircleRenderInstance>(0, Allocator.Persistent);
+        // 渲染资源：网格与调色板材质，由系统创建并持有
+        private Mesh _mesh;
+        private Material[] _materials;
+        private readonly Matrix4x4[] _drawBuffer = new Matrix4x4[MaxInstancesPerDraw];
 
-        public RenderCollectSystem(OrbitSystem orbitSystem)
+        public DemoRenderSystem(OrbitSystem orbitSystem)
         {
             _orbitSystem = orbitSystem;
         }
 
         public void OnCreate(ref SystemState state)
         {
-            _query = state.World.Query<CirclePosition, CircleRotation, CircleRender>();
+            _query = state.World.Query<CirclePosition, CircleRotation, RendererData>();
+
+            // 复用 Unity 内置球体网格
+            var primitive = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            _mesh = primitive.GetComponent<MeshFilter>().sharedMesh;
+            UnityEngine.Object.Destroy(primitive);
+
+            // 为调色板中的每种颜色准备一个可实例化的材质
+            _materials = new Material[Palette.Length];
+            for (int i = 0; i < Palette.Length; i++)
+            {
+                var mat = new Material(FindLitShader());
+                mat.color = Palette[i];
+                mat.enableInstancing = true;
+                _materials[i] = mat;
+            }
         }
 
         public void OnUpdate(ref SystemState state)
         {
-            // 先等待轨道 Job 写完位置数据，再收集渲染实例，保证读到的是最新一帧结果
+            // 先等轨道 Job 写完位置数据，保证渲染的是最新一帧结果
             _orbitSystem.Handle.Complete();
 
             var needed = _query.CalculateChunkCount();
@@ -151,19 +166,13 @@ namespace EngineX.Demo
             }
             _query.ToChunkArray(_chunks);
 
-            int total = 0;
-            for (int i = 0; i < _chunks.Length; i++)
+            // 按颜色分组，同色实例合并到同一批
+            var batches = new List<Matrix4x4>[Palette.Length];
+            for (int c = 0; c < batches.Length; c++)
             {
-                total += _chunks[i].Chunk.Count;
+                batches[c] = new List<Matrix4x4>();
             }
 
-            if (Instances.Length != total)
-            {
-                Instances.Dispose();
-                Instances = new NativeArray<CircleRenderInstance>(total, Allocator.Persistent);
-            }
-
-            int output = 0;
             for (int i = 0; i < _chunks.Length; i++)
             {
                 var chunk = _chunks[i].Chunk;
@@ -171,16 +180,28 @@ namespace EngineX.Demo
                 {
                     ref var pos = ref chunk.GetComponentRef<CirclePosition>(e);
                     ref var rot = ref chunk.GetComponentRef<CircleRotation>(e);
-                    ref var ren = ref chunk.GetComponentRef<CircleRender>(e);
-                    Instances[output++] = new CircleRenderInstance
-                    {
-                        PosX = pos.X,
-                        PosY = pos.Y,
-                        PosZ = pos.Z,
-                        Angle = rot.Angle,
-                        Scale = ren.Scale,
-                        ColorIndex = ren.ColorIndex,
-                    };
+                    ref var renderer = ref chunk.GetComponentRef<RendererData>(e);
+                    int colorIndex = Mathf.Abs(renderer.ColorIndex) % Palette.Length;
+                    batches[colorIndex].Add(Matrix4x4.TRS(
+                        new Vector3(pos.X, pos.Y, pos.Z),
+                        Quaternion.Euler(0f, rot.Angle * Mathf.Rad2Deg, 0f),
+                        Vector3.one * renderer.Scale));
+                }
+            }
+
+            // 逐颜色分批实例化绘制
+            for (int c = 0; c < Palette.Length; c++)
+            {
+                var list = batches[c];
+                if (list.Count == 0)
+                {
+                    continue;
+                }
+                for (int b = 0; b < list.Count; b += _drawBuffer.Length)
+                {
+                    int batchCount = Mathf.Min(_drawBuffer.Length, list.Count - b);
+                    list.CopyTo(b, _drawBuffer, 0, batchCount);
+                    DrawInstanced(c, batchCount);
                 }
             }
         }
@@ -188,7 +209,52 @@ namespace EngineX.Demo
         public void OnDestroy(ref SystemState state)
         {
             _chunks.Dispose();
-            Instances.Dispose();
+            if (_materials == null)
+            {
+                return;
+            }
+            foreach (var mat in _materials)
+            {
+                if (mat != null)
+                {
+                    UnityEngine.Object.Destroy(mat);
+                }
+            }
+        }
+
+        private void DrawInstanced(int colorIndex, int count)
+        {
+            var material = _materials[colorIndex];
+#if UNITY_2022_2_OR_NEWER
+            var rp = new RenderParams(material)
+            {
+                shadowCastingMode = ShadowCastingMode.On,
+                receiveShadows = true,
+                // 渲染前剔除用的包围盒，覆盖轨道范围即可
+                worldBounds = new Bounds(Vector3.zero, Vector3.one * 1000f),
+            };
+            // 注意：RenderMeshInstanced 没有 MaterialPropertyBlock 参数，
+            // 需要逐实例属性时通过 RenderParams.matProps 传入
+            Graphics.RenderMeshInstanced(rp, _mesh, 0, _drawBuffer, count);
+#else
+            Graphics.DrawMeshInstanced(_mesh, 0, material, _drawBuffer, count, null,
+                ShadowCastingMode.On, true);
+#endif
+        }
+
+        private static Shader FindLitShader()
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader != null)
+            {
+                return shader;
+            }
+            shader = Shader.Find("HDRP/Lit");
+            if (shader != null)
+            {
+                return shader;
+            }
+            return Shader.Find("Standard");
         }
     }
 
@@ -199,20 +265,7 @@ namespace EngineX.Demo
         private readonly World _world = new World();
         private readonly SystemsGroup _group = new SystemsGroup();
         private readonly OrbitSystem _orbitSystem = new OrbitSystem() { DeltaTime = 0.02f };
-        private RenderCollectSystem _renderSystem;
-
-        /// <summary>渲染收集系统，CircleRenderer 从这里读取渲染实例。</summary>
-        public RenderCollectSystem RenderSystem
-        {
-            get
-            {
-                if (_renderSystem == null)
-                {
-                    _renderSystem = new RenderCollectSystem(_orbitSystem);
-                }
-                return _renderSystem;
-            }
-        }
+        private DemoRenderSystem _renderSystem;
 
         public void Awake()
         {
@@ -227,16 +280,17 @@ namespace EngineX.Demo
                     X = OrbitSystem.Radius * (float)Math.Cos(angle),
                     Z = OrbitSystem.Radius * (float)Math.Sin(angle),
                 });
-                // 渲染组件：声明该实体需要被渲染，并携带渲染参数
-                _world.AddComponent(e, new CircleRender
+                // 渲染数据组件：声明该实体需要被渲染，并携带渲染参数
+                _world.AddComponent(e, new RendererData
                 {
                     Scale = 0.35f + 0.15f * (i % 3),
                     ColorIndex = i % 4,
                 });
             }
 
+            _renderSystem = new DemoRenderSystem(_orbitSystem);
             _group.Add(_orbitSystem);
-            _group.Add(RenderSystem);
+            _group.Add(_renderSystem);
             _group.Create(_world);
         }
 
