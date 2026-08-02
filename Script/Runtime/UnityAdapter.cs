@@ -18,7 +18,7 @@ namespace EngineX.Demo
         private void Awake()
         {
             _world = _circleDemo.Create();
-            _renderGroup.Add(new DemoRenderSystem());
+            _renderGroup.Add(new DemoRenderSystem(new DummyResourceLoader()));
             _renderGroup.Create(_world);
         }
 

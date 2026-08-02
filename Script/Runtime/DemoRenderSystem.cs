@@ -25,8 +25,14 @@ namespace EngineX.Demo
         private readonly Dictionary<string, Mesh> _meshCache = new Dictionary<string, Mesh>();
         private readonly Dictionary<string, Material> _materialCache = new Dictionary<string, Material>();
         private readonly HashSet<string> _missingWarned = new HashSet<string>();
+        private readonly IResourceLoader _resourceLoader;
 
         private readonly Matrix4x4[] _drawBuffer = new Matrix4x4[MaxInstancesPerDraw];
+
+        public DemoRenderSystem(IResourceLoader resourceLoader)
+        {
+            _resourceLoader = resourceLoader;
+        }
 
         /// <summary>合批键：同一 (网格, 材质) 的实例放一批绘制。</summary>
         private readonly struct BatchKey
@@ -127,7 +133,7 @@ namespace EngineX.Demo
             }
             if (!_meshCache.TryGetValue(path, out var mesh))
             {
-                mesh = Resources.Load<GameObject>(path).GetComponent<MeshFilter>().sharedMesh;
+                mesh = _resourceLoader.LoadMesh(path);
                 _meshCache[path] = mesh;
                 if (mesh == null && _missingWarned.Add("Mesh:" + path))
                 {
@@ -145,7 +151,7 @@ namespace EngineX.Demo
             }
             if (!_materialCache.TryGetValue(path, out var material))
             {
-                material = Resources.Load<Material>(path);
+                material = _resourceLoader.LoadMaterial(path);
                 _materialCache[path] = material;
                 if (material == null)
                 {
