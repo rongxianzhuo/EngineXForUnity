@@ -6,7 +6,11 @@ namespace EngineX.Demo
     {
         public Mesh LoadMesh(string resourcePath)
         {
-            return Resources.Load<GameObject>(resourcePath).GetComponent<MeshFilter>().sharedMesh;
+            var go = Resources.Load<GameObject>(resourcePath);
+            if (!go) return null;
+            var filter = go.GetComponent<MeshFilter>();
+            if (!filter) return null;
+            return filter.sharedMesh;
         }
 
         public Material LoadMaterial(string resourcePath)

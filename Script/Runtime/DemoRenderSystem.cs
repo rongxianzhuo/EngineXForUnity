@@ -137,7 +137,7 @@ namespace EngineX.Demo
                 _meshCache[path] = mesh;
                 if (mesh == null && _missingWarned.Add("Mesh:" + path))
                 {
-                    Debug.LogWarning($"[DemoRenderSystem] 找不到 Mesh 资源: {path}（请确认 Assets/Resources/{path} 下存在）");
+                    Debug.LogError($"[DemoRenderSystem] 找不到 Mesh 资源: {path}（请确认 Assets/Resources/{path} 下存在）");
                 }
             }
             return mesh;
@@ -157,7 +157,7 @@ namespace EngineX.Demo
                 {
                     if (_missingWarned.Add("Material:" + path))
                     {
-                        Debug.LogWarning($"[DemoRenderSystem] 找不到 Material 资源: {path}（请确认 Assets/Resources/{path} 下存在）");
+                        Debug.LogError($"[DemoRenderSystem] 找不到 Material 资源: {path}（请确认 Assets/Resources/{path} 下存在）");
                     }
                     return null;
                 }

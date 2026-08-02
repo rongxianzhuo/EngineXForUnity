@@ -7,20 +7,15 @@ using EngineXMath = EngineX.Baseline.Math;
 
 namespace EngineX.Demo
 {
-    // ==================== 轨道 Job / System ====================
-    // 直接驱动通用的 TransformData 组件（Position + Rotation + Scale）
 
     public struct OrbitJob : IJobParallelForBatch
     {
         public NativeArray<ChunkHandle> Chunks;
-        public FP AngularSpeed; // 弧度/秒
+        public FP AngularSpeed;
         public FP DeltaTime;
 
         public void Execute(int startIndex, int count)
         {
-            // 每步绕 Y 轴的旋转增量（定点数四元数）
-            // 注意：FP 乘法是截断式且 Sin/Cos 走查表插值，直接累乘四元数会导致
-            // 范数持续漂移（<1），所以 step 归一化，且每实体组合后再次归一化
             var step = EngineXMath.Quaternion.AngleAxis(AngularSpeed * DeltaTime * FP.Rad2Deg, EngineXMath.Vector3.Up).Normalized;
             for (int i = startIndex; i < startIndex + count; i++)
             {
@@ -39,7 +34,6 @@ namespace EngineX.Demo
     {
         public static readonly FP Radius = FP.FromInt(5);
 
-        /// <summary>角速度 ≈ -2π * 0.1 弧度/秒</summary>
         private static readonly FP AngularSpeed = FP.FromFloat(-0.62831853f);
 
         private EntityQuery _query;
@@ -60,7 +54,7 @@ namespace EngineX.Demo
                 _chunks.Dispose();
                 _chunks = new NativeArray<ChunkHandle>(needed, Allocator.Persistent);
             }
-            _query.ToChunkArray(_chunks);   // 零分配填充
+            _query.ToChunkArray(_chunks);
             Handle = JobSystem.ScheduleParallel(
                 new OrbitJob
                 {
@@ -79,13 +73,8 @@ namespace EngineX.Demo
         }
     }
 
-
-    // ==================== 入口：驱动 ECS 世界 ====================
-
     public class CircleDemo : IGame
     {
-
-        // RenderData 指向的 Resources 资源路径（在 Assets/Resources 下创建同名资源）
         private const string MeshResourcePath = "Demo/Sphere";
         private const string MaterialResourcePath = "Demo/BaseMaterial";
 
@@ -109,7 +98,6 @@ namespace EngineX.Demo
                     position,
                     new EngineXMath.Vector3(FP.Zero, angle * FP.Rad2Deg, FP.Zero),
                     new EngineXMath.Vector3(scale, scale, scale)));
-                // 渲染数据组件：声明渲染方式（网格/材质来自 Resources 路径）
                 _world.AddComponent(e, new RenderData(MeshResourcePath, MaterialResourcePath));
             }
 
