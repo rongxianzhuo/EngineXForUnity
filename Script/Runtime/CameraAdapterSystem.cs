@@ -19,29 +19,17 @@ namespace EngineX.Demo
         private EntityQuery _query;
         private NativeArray<ChunkHandle> _chunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
         private Camera _camera;
-        private bool _ownsCamera;
 
         public void OnCreate(ref SystemState state)
         {
             _query = state.World.Query<CameraData>();
-
-            // 复用场景里的 Main Camera；没有则自动创建
             _camera = Camera.main;
-            if (_camera == null)
-            {
-                var go = new GameObject("EngineX Camera");
-                _camera = go.AddComponent<Camera>();
-                _camera.tag = "MainCamera";
-                _ownsCamera = true;
-            }
+            if (!_camera) Debug.LogError("Camera is not found.");
         }
 
         public void OnUpdate(ref SystemState state)
         {
-            if (_camera == null)
-            {
-                return;
-            }
+            if (!_camera) return;
 
             var needed = _query.CalculateChunkCount();
             if (_chunks.Length != needed)
@@ -53,7 +41,7 @@ namespace EngineX.Demo
 
             if (_chunks.Length == 0 || _chunks[0].Chunk.Count == 0)
             {
-                return; // 游戏侧尚未声明相机，保持现状
+                return;
             }
 
             ref var data = ref _chunks[0].Chunk.GetComponentRef<CameraData>(0);
@@ -63,7 +51,7 @@ namespace EngineX.Demo
         public void OnDestroy(ref SystemState state)
         {
             _chunks.Dispose();
-            if (_ownsCamera && _camera != null)
+            if (_camera)
             {
                 UnityEngine.Object.Destroy(_camera.gameObject);
             }
@@ -73,12 +61,10 @@ namespace EngineX.Demo
         {
             _camera.transform.position = UnityConvert.ToVector3(data.Position);
             _camera.transform.rotation = UnityConvert.ToQuaternion(data.Rotation);
-            // 防御：default(CameraData) 时 Fov/Near/Far 为 0，回退默认值
             _camera.fieldOfView = data.Fov > FP.Zero ? data.Fov.Single() : DefaultFov;
             _camera.nearClipPlane = data.NearClip > FP.Zero ? data.NearClip.Single() : DefaultNear;
             _camera.farClipPlane = data.FarClip > FP.Zero ? data.FarClip.Single() : DefaultFar;
             _camera.orthographic = data.Projection == CameraProjection.Orthographic;
-            // 注：正交模式的 orthographicSize 暂未纳入组件契约，保持 Unity 默认值
         }
     }
 }
