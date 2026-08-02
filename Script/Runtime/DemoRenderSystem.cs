@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using EngineX.Baseline.FixedPoint;
 using EngineX.ECS;
 using EngineX.ECS.Components;
+using EngineX.Jobs;
 using EngineXMath = EngineX.Baseline.Math;
 using UnityEngine;
 using UnityEngine.Rendering;
