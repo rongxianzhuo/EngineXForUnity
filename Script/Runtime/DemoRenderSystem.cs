@@ -92,11 +92,14 @@ namespace EngineX.Demo
 
         private static Quaternion ToUnityQuaternion(EngineXMath.Quaternion q)
         {
-            // 防御：默认构造的 TransformData 旋转是零四元数 (0,0,0,0)，不是单位四元数
+            // 防御 1：默认构造的 TransformData 旋转是零四元数 (0,0,0,0)，不是单位四元数
             if (q.X == FP.Zero && q.Y == FP.Zero && q.Z == FP.Zero && q.W == FP.Zero)
             {
                 return Quaternion.identity;
             }
+            // 防御 2：增量旋转 + 定点数截断会产生范数漂移，
+            // Matrix4x4.TRS 要求单位四元数，否则报错，所以边界处归一化
+            q = q.Normalized;
             return new Quaternion(q.X.Single(), q.Y.Single(), q.Z.Single(), q.W.Single());
         }
 

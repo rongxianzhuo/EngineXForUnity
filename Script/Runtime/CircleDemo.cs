@@ -19,7 +19,9 @@ namespace EngineX.Demo
         public void Execute(int startIndex, int count)
         {
             // 每步绕 Y 轴的旋转增量（定点数四元数）
-            var step = EngineXMath.Quaternion.AngleAxis(AngularSpeed * DeltaTime * FP.Rad2Deg, EngineXMath.Vector3.Up);
+            // 注意：FP 乘法是截断式且 Sin/Cos 走查表插值，直接累乘四元数会导致
+            // 范数持续漂移（<1），所以 step 归一化，且每实体组合后再次归一化
+            var step = EngineXMath.Quaternion.AngleAxis(AngularSpeed * DeltaTime * FP.Rad2Deg, EngineXMath.Vector3.Up).Normalized;
             for (int i = startIndex; i < startIndex + count; i++)
             {
                 var chunk = Chunks[i].Chunk;
@@ -27,7 +29,7 @@ namespace EngineX.Demo
                 {
                     ref var t = ref chunk.GetComponentRef<TransformData>(e);
                     t.Position = step * t.Position;
-                    t.Rotation = step * t.Rotation;
+                    t.Rotation = (step * t.Rotation).Normalized;
                 }
             }
         }
