@@ -127,7 +127,7 @@ namespace EngineX.Demo
             }
             if (!_meshCache.TryGetValue(path, out var mesh))
             {
-                mesh = Resources.Load<Mesh>(path);
+                mesh = Resources.Load<GameObject>(path).GetComponent<MeshFilter>().sharedMesh;
                 _meshCache[path] = mesh;
                 if (mesh == null && _missingWarned.Add("Mesh:" + path))
                 {
