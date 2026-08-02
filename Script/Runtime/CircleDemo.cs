@@ -106,6 +106,14 @@ namespace EngineX.Demo
 
             _group.Add(_orbitSystem);
             _group.Create(_world);
+
+            // 相机实体：位于轨道上方俯视原点（CameraData 由适配层同步到 Unity Camera）
+            var cameraEntity = _world.CreateEntity();
+            _world.AddComponent(cameraEntity, CameraData.FromEuler(
+                new EngineXMath.Vector3(FP.Zero, FP.FromInt(6), FP.FromInt(-10)),
+                new EngineXMath.Vector3(FP.FromInt(25), FP.Zero, FP.Zero),
+                FP.FromInt(60)));
+
             return _world;
         }
 

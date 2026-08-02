@@ -99,9 +99,9 @@ namespace EngineX.Demo
                         batches.Add(key, matrices);
                     }
                     matrices.Add(Matrix4x4.TRS(
-                        ToUnityVector3(t.Position),
-                        ToUnityQuaternion(t.Rotation),
-                        ToUnityVector3(t.Scale)));
+                        UnityConvert.ToVector3(t.Position),
+                        UnityConvert.ToQuaternion(t.Rotation),
+                        UnityConvert.ToVector3(t.Scale)));
                 }
             }
 
@@ -167,25 +167,7 @@ namespace EngineX.Demo
             return material;
         }
 
-        // ==================== 定点数 → Unity 转换 ====================
-
-        private static Vector3 ToUnityVector3(EngineXMath.Vector3 v)
-        {
-            return new Vector3(v.X.Single(), v.Y.Single(), v.Z.Single());
-        }
-
-        private static Quaternion ToUnityQuaternion(EngineXMath.Quaternion q)
-        {
-            // 防御 1：默认构造的 TransformData 旋转是零四元数 (0,0,0,0)，不是单位四元数
-            if (q.X == FP.Zero && q.Y == FP.Zero && q.Z == FP.Zero && q.W == FP.Zero)
-            {
-                return Quaternion.identity;
-            }
-            // 防御 2：增量旋转 + 定点数截断会产生范数漂移，
-            // Matrix4x4.TRS 要求单位四元数，否则报错，所以边界处归一化
-            q = q.Normalized;
-            return new Quaternion(q.X.Single(), q.Y.Single(), q.Z.Single(), q.W.Single());
-        }
+        // ==================== 定点数 → Unity 转换（见 UnityConvert） ====================
 
         private void DrawInstanced(Mesh mesh, Material material, int count)
         {

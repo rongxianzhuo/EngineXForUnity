@@ -19,6 +19,7 @@ namespace EngineX.Demo
         {
             _world = _circleDemo.Create();
             _renderGroup.Add(new DemoRenderSystem(new DummyResourceLoader()));
+            _renderGroup.Add(new CameraAdapterSystem());
             _renderGroup.Create(_world);
         }
 
