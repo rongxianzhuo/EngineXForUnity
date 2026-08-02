@@ -120,6 +120,8 @@ namespace EngineX.Demo
         };
 
         private readonly OrbitSystem _orbitSystem;
+        private readonly Material _baseMaterial;
+        
         private EntityQuery _query;
         private NativeArray<ChunkHandle> _chunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
 
@@ -128,9 +130,10 @@ namespace EngineX.Demo
         private Material[] _materials;
         private readonly Matrix4x4[] _drawBuffer = new Matrix4x4[MaxInstancesPerDraw];
 
-        public DemoRenderSystem(OrbitSystem orbitSystem)
+        public DemoRenderSystem(OrbitSystem orbitSystem, Material baseMaterial)
         {
             _orbitSystem = orbitSystem;
+            _baseMaterial = baseMaterial;
         }
 
         public void OnCreate(ref SystemState state)
@@ -146,7 +149,7 @@ namespace EngineX.Demo
             _materials = new Material[Palette.Length];
             for (int i = 0; i < Palette.Length; i++)
             {
-                var mat = new Material(FindLitShader());
+                var mat = new Material(_baseMaterial);
                 mat.color = Palette[i];
                 mat.enableInstancing = true;
                 _materials[i] = mat;
@@ -241,27 +244,14 @@ namespace EngineX.Demo
                 ShadowCastingMode.On, true);
 #endif
         }
-
-        private static Shader FindLitShader()
-        {
-            var shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader != null)
-            {
-                return shader;
-            }
-            shader = Shader.Find("HDRP/Lit");
-            if (shader != null)
-            {
-                return shader;
-            }
-            return Shader.Find("Standard");
-        }
     }
 
     // ==================== 入口：驱动 ECS 世界 ====================
 
     public class CircleDemo : MonoBehaviour
     {
+        public Material baseMaterial;
+        
         private readonly World _world = new World();
         private readonly SystemsGroup _group = new SystemsGroup();
         private readonly OrbitSystem _orbitSystem = new OrbitSystem() { DeltaTime = 0.02f };
@@ -288,14 +278,15 @@ namespace EngineX.Demo
                 });
             }
 
-            _renderSystem = new DemoRenderSystem(_orbitSystem);
+            _renderSystem = new DemoRenderSystem(_orbitSystem, baseMaterial);
             _group.Add(_orbitSystem);
             _group.Add(_renderSystem);
             _group.Create(_world);
         }
 
-        public void FixedUpdate()
+        public void Update()
         {
+            _orbitSystem.DeltaTime = Time.deltaTime;
             _group.Update(_world);
             _orbitSystem.Handle.Complete();
         }
