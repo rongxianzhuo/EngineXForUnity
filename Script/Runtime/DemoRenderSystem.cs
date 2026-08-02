@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using EngineX.Baseline.FixedPoint;
 using EngineX.ECS;
-using EngineX.Jobs;
+using EngineX.ECS.Components;
+using EngineXMath = EngineX.Baseline.Math;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -28,7 +30,7 @@ namespace EngineX.Demo
 
         public void OnCreate(ref SystemState state)
         {
-            _query = state.World.Query<CirclePosition, CircleRotation, RendererData>();
+            _query = state.World.Query<TransformData>();
 
             // 复用 Unity 内置球体网格
             var primitive = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -52,20 +54,18 @@ namespace EngineX.Demo
             }
             _query.ToChunkArray(_chunks);
 
-            // 收集所有实例的变换矩阵
+            // 收集所有实例的变换矩阵（EngineX 定点数 → Unity float）
             var matrices = new List<Matrix4x4>();
             for (int i = 0; i < _chunks.Length; i++)
             {
                 var chunk = _chunks[i].Chunk;
                 for (int e = 0; e < chunk.Count; e++)
                 {
-                    ref var pos = ref chunk.GetComponentRef<CirclePosition>(e);
-                    ref var rot = ref chunk.GetComponentRef<CircleRotation>(e);
-                    ref var renderer = ref chunk.GetComponentRef<RendererData>(e);
+                    ref var t = ref chunk.GetComponentRef<TransformData>(e);
                     matrices.Add(Matrix4x4.TRS(
-                        new Vector3(pos.X, pos.Y, pos.Z),
-                        Quaternion.Euler(0f, rot.Angle * Mathf.Rad2Deg, 0f),
-                        Vector3.one * renderer.Scale));
+                        ToUnityVector3(t.Position),
+                        ToUnityQuaternion(t.Rotation),
+                        ToUnityVector3(t.Scale)));
                 }
             }
 
@@ -81,6 +81,23 @@ namespace EngineX.Demo
         public void OnDestroy(ref SystemState state)
         {
             _chunks.Dispose();
+        }
+
+        // ==================== 定点数 → Unity 转换 ====================
+
+        private static Vector3 ToUnityVector3(EngineXMath.Vector3 v)
+        {
+            return new Vector3(v.X.Single(), v.Y.Single(), v.Z.Single());
+        }
+
+        private static Quaternion ToUnityQuaternion(EngineXMath.Quaternion q)
+        {
+            // 防御：默认构造的 TransformData 旋转是零四元数 (0,0,0,0)，不是单位四元数
+            if (q.X == FP.Zero && q.Y == FP.Zero && q.Z == FP.Zero && q.W == FP.Zero)
+            {
+                return Quaternion.identity;
+            }
+            return new Quaternion(q.X.Single(), q.Y.Single(), q.Z.Single(), q.W.Single());
         }
 
         private void DrawInstanced(int count)

@@ -1,50 +1,33 @@
-using System;
-using System.Collections.Generic;
+using EngineX.Baseline.FixedPoint;
 using EngineX.ECS;
+using EngineX.ECS.Components;
 using EngineX.Jobs;
+using EngineXMath = EngineX.Baseline.Math;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace EngineX.Demo
 {
-    // ==================== ECS 组件定义 ====================
-
-    public struct CirclePosition : IComponentData
-    {
-        public float X;
-        public float Y;
-        public float Z;
-    }
-
-    public struct CircleRotation : IComponentData
-    {
-        public float Angle;
-    }
-
     // ==================== 轨道 Job / System ====================
+    // 直接驱动通用的 TransformData 组件（Position + Rotation + Scale）
 
     public struct OrbitJob : IJobParallelForBatch
     {
         public NativeArray<ChunkHandle> Chunks;
-        public float Radius;
-        public float AngularSpeed;
-        public float DeltaTime;
+        public FP AngularSpeed; // 弧度/秒
+        public FP DeltaTime;
 
         public void Execute(int startIndex, int count)
         {
+            // 每步绕 Y 轴的旋转增量（定点数四元数）
+            var step = EngineXMath.Quaternion.AngleAxis(AngularSpeed * DeltaTime * FP.Rad2Deg, EngineXMath.Vector3.Up);
             for (int i = startIndex; i < startIndex + count; i++)
             {
                 var chunk = Chunks[i].Chunk;
                 for (int e = 0; e < chunk.Count; e++)
                 {
-                    ref var rot = ref chunk.GetComponentRef<CircleRotation>(e);
-                    ref var pos = ref chunk.GetComponentRef<CirclePosition>(e);
-                    rot.Angle += AngularSpeed * DeltaTime;
-                    float c = (float)Math.Cos(rot.Angle);
-                    float s = (float)Math.Sin(rot.Angle);
-                    pos.X = Radius * c;
-                    pos.Y = 0f;
-                    pos.Z = Radius * s;
+                    ref var t = ref chunk.GetComponentRef<TransformData>(e);
+                    t.Position = step * t.Position;
+                    t.Rotation = step * t.Rotation;
                 }
             }
         }
@@ -52,16 +35,19 @@ namespace EngineX.Demo
 
     public sealed class OrbitSystem : ISystem
     {
-        public const float Radius = 5;
+        public static readonly FP Radius = FP.FromInt(5);
+
+        /// <summary>角速度 ≈ -2π * 0.1 弧度/秒</summary>
+        private static readonly FP AngularSpeed = FP.FromFloat(-0.62831853f);
 
         private EntityQuery _query;
         public JobHandle Handle;
-        public float DeltaTime = 1f / 50f;
+        public FP DeltaTime = FP.FromFloat(1f / 50f);
         private NativeArray<ChunkHandle> _chunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
 
         public void OnCreate(ref SystemState state)
         {
-            _query = state.World.Query<CirclePosition, CircleRotation>();
+            _query = state.World.Query<TransformData>();
         }
 
         public void OnUpdate(ref SystemState state)
@@ -77,8 +63,7 @@ namespace EngineX.Demo
                 new OrbitJob
                 {
                     Chunks = _chunks,
-                    Radius = Radius,
-                    AngularSpeed = -2f * (float)Math.PI * 0.1f,
+                    AngularSpeed = AngularSpeed,
                     DeltaTime = DeltaTime,
                 },
                 _chunks, 1, state.Dependency);
@@ -98,10 +83,10 @@ namespace EngineX.Demo
     public class CircleDemo : MonoBehaviour
     {
         public Material baseMaterial;
-        
+
         private readonly World _world = new World();
         private readonly SystemsGroup _group = new SystemsGroup();
-        private readonly OrbitSystem _orbitSystem = new OrbitSystem() { DeltaTime = 0.02f };
+        private readonly OrbitSystem _orbitSystem = new OrbitSystem() { DeltaTime = FP.FromFloat(0.02f) };
         private DemoRenderSystem _renderSystem;
 
         public void Awake()
@@ -110,18 +95,16 @@ namespace EngineX.Demo
             for (int i = 0; i < entityCount; i++)
             {
                 var e = _world.CreateEntity();
-                float angle = (float)(2.0 * Math.PI * i / entityCount);
-                _world.AddComponent(e, new CircleRotation { Angle = angle });
-                _world.AddComponent(e, new CirclePosition
-                {
-                    X = OrbitSystem.Radius * (float)Math.Cos(angle),
-                    Z = OrbitSystem.Radius * (float)Math.Sin(angle),
-                });
-                // 渲染数据组件：声明该实体需要被渲染，并携带渲染参数
-                _world.AddComponent(e, new RendererData
-                {
-                    Scale = 0.35f + 0.15f * (i % 3),
-                });
+                FP angle = FP.PI * 2 * i / entityCount;
+                var position = new EngineXMath.Vector3(
+                    OrbitSystem.Radius * FpMath.Cos(angle),
+                    FP.Zero,
+                    OrbitSystem.Radius * FpMath.Sin(angle));
+                FP scale = FP.FromFloat(0.35f + 0.15f * (i % 3));
+                _world.AddComponent(e, TransformData.FromEuler(
+                    position,
+                    new EngineXMath.Vector3(FP.Zero, angle * FP.Rad2Deg, FP.Zero),
+                    new EngineXMath.Vector3(scale, scale, scale)));
             }
 
             _renderSystem = new DemoRenderSystem(_orbitSystem, baseMaterial);
@@ -132,7 +115,7 @@ namespace EngineX.Demo
 
         public void Update()
         {
-            _orbitSystem.DeltaTime = Time.deltaTime;
+            _orbitSystem.DeltaTime = FP.FromFloat(Time.deltaTime);
             _group.Update(_world);
             _orbitSystem.Handle.Complete();
         }
