@@ -75,7 +75,8 @@ namespace EngineX.Demo
 
     public class CircleDemo : IGame
     {
-        private const string MeshResourcePath = "Demo/Sphere";
+        private const string SphereResourcePath = "Demo/Sphere";
+        private const string CubeResourcePath = "Demo/Cube";
         private const string MaterialResourcePath = "Demo/BaseMaterial";
 
         private readonly World _world = new World();
@@ -98,7 +99,9 @@ namespace EngineX.Demo
                     position,
                     new EngineXMath.Vector3(FP.Zero, angle * FP.Rad2Deg, FP.Zero),
                     new EngineXMath.Vector3(scale, scale, scale)));
-                _world.AddComponent(e, new RenderData(MeshResourcePath, MaterialResourcePath));
+                // 球体与正方体间隔排列，验证 RenderData 的 per-entity 资源声明
+                string meshPath = (i % 2) == 0 ? SphereResourcePath : CubeResourcePath;
+                _world.AddComponent(e, new RenderData(meshPath, MaterialResourcePath));
             }
 
             _group.Add(_orbitSystem);
