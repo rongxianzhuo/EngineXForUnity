@@ -13,7 +13,6 @@ namespace EngineX.Demo
     {
         private const int MaxInstancesPerDraw = 1023;
 
-        private readonly OrbitSystem _orbitSystem;
         private readonly Material _baseMaterial;
 
         private EntityQuery _query;
@@ -23,9 +22,8 @@ namespace EngineX.Demo
         private Mesh _mesh;
         private readonly Matrix4x4[] _drawBuffer = new Matrix4x4[MaxInstancesPerDraw];
 
-        public DemoRenderSystem(OrbitSystem orbitSystem, Material baseMaterial)
+        public DemoRenderSystem(Material baseMaterial)
         {
-            _orbitSystem = orbitSystem;
             _baseMaterial = baseMaterial;
         }
 
@@ -44,9 +42,6 @@ namespace EngineX.Demo
 
         public void OnUpdate(ref SystemState state)
         {
-            // 先等轨道 Job 写完位置数据，保证渲染的是最新一帧结果
-            _orbitSystem.Handle.Complete();
-
             var needed = _query.CalculateChunkCount();
             if (_chunks.Length != needed)
             {

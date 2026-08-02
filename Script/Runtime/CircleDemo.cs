@@ -1,9 +1,9 @@
 using EngineX.Baseline.FixedPoint;
 using EngineX.ECS;
 using EngineX.ECS.Components;
+using EngineX.Framework;
 using EngineX.Jobs;
 using EngineXMath = EngineX.Baseline.Math;
-using UnityEngine;
 
 namespace EngineX.Demo
 {
@@ -44,7 +44,7 @@ namespace EngineX.Demo
 
         private EntityQuery _query;
         public JobHandle Handle;
-        public FP DeltaTime = FP.FromFloat(1f / 50f);
+        public FP DeltaTime = FP.One / 50;
         private NativeArray<ChunkHandle> _chunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
 
         public void OnCreate(ref SystemState state)
@@ -82,16 +82,14 @@ namespace EngineX.Demo
 
     // ==================== 入口：驱动 ECS 世界 ====================
 
-    public class CircleDemo : MonoBehaviour
+    public class CircleDemo : IGame
     {
-        public Material baseMaterial;
 
         private readonly World _world = new World();
         private readonly SystemsGroup _group = new SystemsGroup();
-        private readonly OrbitSystem _orbitSystem = new OrbitSystem() { DeltaTime = FP.FromFloat(0.02f) };
-        private DemoRenderSystem _renderSystem;
+        private readonly OrbitSystem _orbitSystem = new OrbitSystem();
 
-        public void Awake()
+        public World Create()
         {
             const int entityCount = 10;
             for (int i = 0; i < entityCount; i++)
@@ -109,20 +107,18 @@ namespace EngineX.Demo
                     new EngineXMath.Vector3(scale, scale, scale)));
             }
 
-            _renderSystem = new DemoRenderSystem(_orbitSystem, baseMaterial);
             _group.Add(_orbitSystem);
-            _group.Add(_renderSystem);
             _group.Create(_world);
+            return _world;
         }
 
         public void Update()
         {
-            _orbitSystem.DeltaTime = FP.FromFloat(Time.deltaTime);
             _group.Update(_world);
             _orbitSystem.Handle.Complete();
         }
 
-        public void OnDestroy()
+        public void Destroy()
         {
             _group.Destroy();
             _world.Dispose();
