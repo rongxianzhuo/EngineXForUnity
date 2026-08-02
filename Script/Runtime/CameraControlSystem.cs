@@ -52,8 +52,8 @@ namespace EngineX.Demo
             // 相机朝向投影到水平面（保持平移不改变高度）
             var forward = transform.Rotation * EngineXMath.Vector3.Forward;
             var right = transform.Rotation * EngineXMath.Vector3.Right;
-            forward.Y = FP.Zero;
-            right.Y = FP.Zero;
+            forward = new EngineXMath.Vector3(forward.X, FP.Zero, forward.Z);
+            right = new EngineXMath.Vector3(right.X, FP.Zero, right.Z);
             if (forward.SqrMagnitude > FP.Zero)
             {
                 forward = forward.Normalized;
