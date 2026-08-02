@@ -57,7 +57,7 @@ namespace EngineX.Demo
             }
 
             ref var data = ref _chunks[0].Chunk.GetComponentRef<CameraData>(0);
-            Apply(data);
+            Apply(ref data);
         }
 
         public void OnDestroy(ref SystemState state)
