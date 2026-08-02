@@ -8,6 +8,11 @@ using EngineXMath = EngineX.Baseline.Math;
 namespace EngineX.Demo
 {
 
+    public struct CircleData : IComponentData
+    {
+        
+    }
+
     public struct OrbitJob : IJobParallelForBatch
     {
         public NativeArray<ChunkHandle> Chunks;
@@ -43,7 +48,7 @@ namespace EngineX.Demo
 
         public void OnCreate(ref SystemState state)
         {
-            _query = state.World.Query<TransformData>();
+            _query = state.World.Query<TransformData, CircleData>();
         }
 
         public void OnUpdate(ref SystemState state)
@@ -95,6 +100,7 @@ namespace EngineX.Demo
                     FP.Zero,
                     OrbitSystem.Radius * FpMath.Sin(angle));
                 FP scale = FP.FromFloat(0.35f + 0.15f * (i % 3));
+                _world.AddComponent(e, new CircleData());
                 _world.AddComponent(e, TransformData.FromEuler(
                     position,
                     new EngineXMath.Vector3(FP.Zero, angle * FP.Rad2Deg, FP.Zero),
