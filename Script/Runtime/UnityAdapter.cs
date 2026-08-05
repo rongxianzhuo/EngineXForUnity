@@ -1,4 +1,5 @@
 using EngineX.ECS;
+using EngineX.UI;
 using UnityEngine;
 
 namespace EngineX.Demo
@@ -24,6 +25,8 @@ namespace EngineX.Demo
             _renderGroup.Add(new DemoRenderSystem(new DummyResourceLoader()));
             _renderGroup.Add(new CameraAdapterSystem());
             _renderGroup.Create(_world);
+
+            DialogManager.Register(new UnityDialogManager());
         }
 
         private void FixedUpdate()
@@ -43,6 +46,7 @@ namespace EngineX.Demo
             _circleDemo.Destroy();
             _inputGroup.Destroy();
             _renderGroup.Destroy();
+            DialogManager.Reset();
         }
     }
 }
