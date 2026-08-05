@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using EngineX.UI;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,7 +8,7 @@ namespace EngineX.Demo
 {
     /// <summary>
     /// Unity 实现的 Dialog：包装 UGUI prefab 实例，按名递归索引子树中的
-    /// Text/Image/Button 元素，提供 GetChild/SetVisible/Dispose。
+    /// TextMeshProUGUI/Image/Button 元素，提供 GetChild/SetVisible/Dispose。
     /// Dispose 幂等，可重复调用。
     /// </summary>
     public class UnityDialog : IDialog
@@ -64,7 +65,7 @@ namespace EngineX.Demo
 
         private void BuildIndex(Transform node)
         {
-            var text = node.GetComponent<Text>();
+            var text = node.GetComponent<TextMeshProUGUI>();
             if (text != null)
             {
                 _index[node.name] = new UnityUiText(text);
