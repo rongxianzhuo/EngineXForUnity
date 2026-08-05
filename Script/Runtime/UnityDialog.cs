@@ -65,20 +65,29 @@ namespace EngineX.Demo
 
         private void BuildIndex(Transform node)
         {
-            var text = node.GetComponent<TextMeshProUGUI>();
-            if (text != null)
+            var rawName = node.name;
+            if (rawName.Length > 1 && rawName[0] == '$')
             {
-                _index[node.name] = new UnityUiText(text);
-            }
-            var image = node.GetComponent<Image>();
-            if (image != null)
-            {
-                _index[node.name] = new UnityUiImage(image);
-            }
-            var button = node.GetComponent<Button>();
-            if (button != null)
-            {
-                _index[node.name] = new UnityUiButton(button);
+                var key = rawName.Substring(1);
+                if (_index.ContainsKey(key))
+                {
+                    Debug.LogWarning($"[UnityDialog] {_gameObject.name} 中存在重复的可寻址节点名: ${key}");
+                }
+                var text = node.GetComponent<TextMeshProUGUI>();
+                if (text != null)
+                {
+                    _index[key] = new UnityUiText(text);
+                }
+                var image = node.GetComponent<Image>();
+                if (image != null)
+                {
+                    _index[key] = new UnityUiImage(image);
+                }
+                var button = node.GetComponent<Button>();
+                if (button != null)
+                {
+                    _index[key] = new UnityUiButton(button);
+                }
             }
             for (int i = 0; i < node.childCount; i++)
             {
