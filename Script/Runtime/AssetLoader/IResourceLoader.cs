@@ -1,7 +1,7 @@
 using UnityEngine;
 using Object = System.Object;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.AssetLoader
 {
     public interface IResourceLoader
     {

@@ -1,8 +1,12 @@
 using EngineX.ECS;
 using EngineX.UI;
+using EngineXForUnity.AssetLoader;
+using EngineXForUnity.Demo;
+using EngineXForUnity.Systems;
+using EngineXForUnity.UI;
 using UnityEngine;
 
-namespace EngineX.Demo
+namespace EngineXForUnity
 {
     /// <summary>
     /// Unity 入口适配器：持有 IGame（纯逻辑）与渲染 SystemsGroup。

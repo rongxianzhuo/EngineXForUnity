@@ -4,7 +4,7 @@ using EngineX.ECS.Components;
 using EngineX.Jobs;
 using EngineXMath = EngineX.Baseline.Math;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.Systems
 {
     /// <summary>
     /// 相机控制系统（游戏侧示例逻辑）：读取 InputData，在相机水平面内移动相机。

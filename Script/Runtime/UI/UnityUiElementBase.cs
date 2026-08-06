@@ -1,7 +1,7 @@
 using EngineX.UI;
 using UnityEngine;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.UI
 {
     /// <summary>
     /// UI 元素适配层基类：实现 IUiElement 的 GetChild/SetVisible/Dispose 默认行为。

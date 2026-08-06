@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.UI
 {
     /// <summary>
     /// Unity 实现的 IUiButton：委托给 UnityEngine.UI.Button。

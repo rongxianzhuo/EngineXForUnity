@@ -2,7 +2,7 @@ using EngineX.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.UI
 {
     /// <summary>
     /// Unity 实现的 DialogManager：按名称从 Resources/UI/ 加载 prefab，
@@ -10,7 +10,8 @@ namespace EngineX.Demo
     /// </summary>
     public class UnityDialogManager : IDialogManager
     {
-        private const string ResourceRoot = "UI/";
+        private const string ResourceRoot = "Demo/UI/";
+        private const string CanvasPath = "Demo/UI/DialogCanvas";
 
         private readonly Canvas _canvas;
 
@@ -19,11 +20,7 @@ namespace EngineX.Demo
             _canvas = Object.FindFirstObjectByType<Canvas>();
             if (_canvas == null)
             {
-                var go = new GameObject("EngineX Canvas");
-                _canvas = go.AddComponent<Canvas>();
-                _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                go.AddComponent<CanvasScaler>();
-                go.AddComponent<GraphicRaycaster>();
+                _canvas = Object.Instantiate(Resources.Load<Canvas>(CanvasPath));
             }
         }
 
@@ -32,6 +29,7 @@ namespace EngineX.Demo
             var prefab = Resources.Load<GameObject>(ResourceRoot + name);
             if (prefab == null)
             {
+                Debug.LogError("Can't find UI Prefab: " + name);
                 return null;
             }
             var instance = Object.Instantiate(prefab, _canvas.transform);

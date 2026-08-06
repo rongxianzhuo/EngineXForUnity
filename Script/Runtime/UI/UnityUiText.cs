@@ -1,7 +1,7 @@
 using EngineX.UI;
 using TMPro;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.UI
 {
     /// <summary>
     /// Unity 实现的 IUiText：委托给 TextMeshProUGUI。

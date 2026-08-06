@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.AssetLoader
 {
     public class DummyResourceLoader : IResourceLoader
     {

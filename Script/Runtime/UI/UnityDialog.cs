@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.UI
 {
     /// <summary>
     /// Unity 实现的 Dialog：包装 UGUI prefab 实例，按名递归索引子树中的

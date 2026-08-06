@@ -2,7 +2,7 @@ using EngineX.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.UI
 {
     /// <summary>
     /// Unity 实现的 IUiImage：委托给 UnityEngine.UI.Image，sprite 通过 Resources 加载。
