@@ -25,6 +25,7 @@ namespace EngineXForUnity.Demo
 
         public void OnDestroy(ref SystemState state)
         {
+            _ecb = null;
         }
 
         internal struct DialogVisitor : IForEachChunk
