@@ -11,9 +11,13 @@ namespace EngineXForUnity.Demo
             public void Execute(ref DemoDialogData data)
             {
                 var dialog = DialogManager.Get("DemoDialog");
+                var button = dialog.GetChild<UnityUiButton>("AddButton");
+                if (button.IsPressed())
+                {
+                    data.Number++;
+                }
                 var text = dialog.GetChild<UnityUiText>("Number");
                 text.SetText(data.Number.ToString());
-                data.Number++;
             }
         }
         

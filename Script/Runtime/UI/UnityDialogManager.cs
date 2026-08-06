@@ -17,11 +17,7 @@ namespace EngineXForUnity.UI
 
         public UnityDialogManager()
         {
-            _canvas = Object.FindFirstObjectByType<Canvas>();
-            if (_canvas == null)
-            {
-                _canvas = Object.Instantiate(Resources.Load<Canvas>(CanvasPath));
-            }
+            _canvas = Object.Instantiate(Resources.Load<Canvas>(CanvasPath));
         }
 
         public IDialog Load(string name)

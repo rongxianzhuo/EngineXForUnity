@@ -26,7 +26,7 @@ namespace EngineXForUnity
             _world = _circleDemo.Create();
             _inputGroup.Add(new InputBridgeSystem());
             _inputGroup.Create(_world);
-            _renderGroup.Add(new DemoRenderSystem(new DummyResourceLoader()));
+            _renderGroup.Add(new DemoRenderSystem());
             _renderGroup.Add(new CameraAdapterSystem());
             _renderGroup.Create(_world);
 

@@ -115,7 +115,6 @@ namespace EngineXForUnity.Demo
             var inputEntity = _world.CreateEntity();
             _world.AddComponent(inputEntity, new InputData());
             
-            // UI实体，一个非常简单的UI，上面有一个数字文本不断累加
             var dialogEntity = _world.CreateEntity();
             _world.AddComponent(dialogEntity, new DemoDialogData());
 
