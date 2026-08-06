@@ -8,7 +8,7 @@ namespace EngineX.Demo
     /// 子类只需关注自身的 UI 元素特性接口（SetText/SetSprite/IsPressed 等）。
     /// GameObject 生命周期由 UnityDialog 统一管理，本类不主动销毁。
     /// </summary>
-    internal abstract class UnityUiElementBase : IUiElement
+    public abstract class UnityUiElementBase : IUiElement
     {
         protected readonly GameObject GameObject;
 
