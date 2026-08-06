@@ -1,7 +1,12 @@
 using EngineX.ECS;
+using EngineX.UI;
+using EngineXForUnity.AssetLoader;
+using EngineXForUnity.Demo;
+using EngineXForUnity.Systems;
+using EngineXForUnity.UI;
 using UnityEngine;
 
-namespace EngineX.Demo
+namespace EngineXForUnity
 {
     /// <summary>
     /// Unity 入口适配器：持有 IGame（纯逻辑）与渲染 SystemsGroup。
@@ -21,9 +26,11 @@ namespace EngineX.Demo
             _world = _circleDemo.Create();
             _inputGroup.Add(new InputBridgeSystem());
             _inputGroup.Create(_world);
-            _renderGroup.Add(new DemoRenderSystem(new DummyResourceLoader()));
+            _renderGroup.Add(new DemoRenderSystem());
             _renderGroup.Add(new CameraAdapterSystem());
             _renderGroup.Create(_world);
+
+            DialogManager.Register(new UnityDialogManager());
         }
 
         private void FixedUpdate()
@@ -43,6 +50,7 @@ namespace EngineX.Demo
             _circleDemo.Destroy();
             _inputGroup.Destroy();
             _renderGroup.Destroy();
+            DialogManager.Unregister();
         }
     }
 }

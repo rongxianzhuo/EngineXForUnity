@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
-namespace EngineX.Demo
+namespace EngineXForUnity.Systems
 {
     /// <summary>
     /// 输入桥接系统（适配层）：读取 Unity 输入，写入游戏世界的 InputData 组件。

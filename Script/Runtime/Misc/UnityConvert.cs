@@ -2,7 +2,7 @@ using EngineX.Baseline.FixedPoint;
 using EngineXMath = EngineX.Baseline.Math;
 using UnityEngine;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.Misc
 {
     /// <summary>
     /// EngineX 定点数 → Unity float 的边界转换工具（含防御逻辑）。

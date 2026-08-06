@@ -3,9 +3,10 @@ using EngineX.ECS;
 using EngineX.ECS.Components;
 using EngineX.Framework;
 using EngineX.Jobs;
+using EngineXForUnity.Systems;
 using EngineXMath = EngineX.Baseline.Math;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.Demo
 {
 
     public struct CircleData : IComponentData
@@ -113,9 +114,13 @@ namespace EngineX.Demo
             // 输入实体：声明"我需要输入"，由适配层 InputBridgeSystem 每帧填充
             var inputEntity = _world.CreateEntity();
             _world.AddComponent(inputEntity, new InputData());
+            
+            var dialogEntity = _world.CreateEntity();
+            _world.AddComponent(dialogEntity, new DemoDialogData());
 
             _group.Add(_orbitSystem);
             _group.Add(new CameraControlSystem());
+            _group.Add(new DemoDialogSystem());
             _group.Create(_world);
 
             // 相机实体：变换来自 TransformData（俯视原点），参数来自 CameraData

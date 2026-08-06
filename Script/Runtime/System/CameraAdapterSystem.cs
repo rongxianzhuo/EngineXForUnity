@@ -2,9 +2,10 @@ using EngineX.Baseline.FixedPoint;
 using EngineX.ECS;
 using EngineX.ECS.Components;
 using EngineX.Jobs;
+using EngineXForUnity.Misc;
 using UnityEngine;
 
-namespace EngineX.Demo
+namespace EngineXForUnity.Systems
 {
     /// <summary>
     /// 相机适配系统：读取游戏侧的 TransformData + CameraData，
