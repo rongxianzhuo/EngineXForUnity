@@ -12,7 +12,7 @@ namespace EngineXForUnity.UI
     {
         private readonly Image _image;
 
-        public UnityUiImage(Image image) : base(image.gameObject)
+        public UnityUiImage(Image image)
         {
             _image = image;
         }

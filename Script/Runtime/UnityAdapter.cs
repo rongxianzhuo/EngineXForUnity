@@ -50,7 +50,7 @@ namespace EngineXForUnity
             _circleDemo.Destroy();
             _inputGroup.Destroy();
             _renderGroup.Destroy();
-            DialogManager.Reset();
+            DialogManager.Unregister();
         }
     }
 }

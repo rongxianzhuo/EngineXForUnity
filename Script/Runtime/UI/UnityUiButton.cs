@@ -9,7 +9,7 @@ namespace EngineXForUnity.UI
     {
         private bool _pendingPress;
 
-        public UnityUiButton(Button button) : base(button.gameObject)
+        public UnityUiButton(Button button)
         {
             button.onClick.AddListener(OnClick);
         }

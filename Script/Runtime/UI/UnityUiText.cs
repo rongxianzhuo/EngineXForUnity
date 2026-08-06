@@ -11,7 +11,7 @@ namespace EngineXForUnity.UI
     {
         private readonly TextMeshProUGUI _text;
 
-        public UnityUiText(TextMeshProUGUI text) : base(text.gameObject)
+        public UnityUiText(TextMeshProUGUI text)
         {
             _text = text;
         }

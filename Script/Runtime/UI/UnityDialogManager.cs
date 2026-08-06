@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using EngineX.UI;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,15 +14,15 @@ namespace EngineXForUnity.UI
         private const string ResourceRoot = "Demo/UI/";
         private const string CanvasPath = "Demo/UI/DialogCanvas";
 
-        private readonly Canvas _canvas;
+        private readonly Canvas _canvas = Object.Instantiate(Resources.Load<Canvas>(CanvasPath));
+        private readonly Dictionary<string, IDialog> _dialogs = new Dictionary<string, IDialog>();
 
-        public UnityDialogManager()
+        public IDialog Show(string name)
         {
-            _canvas = Object.Instantiate(Resources.Load<Canvas>(CanvasPath));
-        }
-
-        public IDialog Load(string name)
-        {
+            if (_dialogs.TryGetValue(name, out var dialog))
+            {
+                return dialog;
+            }
             var prefab = Resources.Load<GameObject>(ResourceRoot + name);
             if (prefab == null)
             {
@@ -30,7 +31,9 @@ namespace EngineXForUnity.UI
             }
             var instance = Object.Instantiate(prefab, _canvas.transform);
             instance.name = name;
-            return new UnityDialog(instance);
+            dialog = new UnityDialog(instance);
+            _dialogs.Add(name, dialog);
+            return dialog;
         }
     }
 }
