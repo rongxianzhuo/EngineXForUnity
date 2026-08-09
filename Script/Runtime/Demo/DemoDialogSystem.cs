@@ -40,6 +40,7 @@ namespace EngineXForUnity.Demo
                     var entity = chunk.GetEntityRef(e);
 
                     var dialog = DialogManager.Show("DemoDialog");
+                    if (dialog == null) return;
                     if (dialog.GetChild<UnityUiButton>("Add").IsPressed())
                     {
                         data.Number++;
@@ -47,7 +48,7 @@ namespace EngineXForUnity.Demo
                     }
                     if (dialog.GetChild<UnityUiButton>("Close").IsPressed())
                     {
-                        dialog.Close();
+                        DialogManager.Close("DemoDialog");
                         Ecb.DestroyEntity(entity);
                     }
                 }

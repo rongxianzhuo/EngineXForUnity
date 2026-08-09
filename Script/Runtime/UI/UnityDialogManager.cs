@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using EngineX.UI;
+using EngineXForUnity.AssetManagement;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,29 +13,45 @@ namespace EngineXForUnity.UI
     /// </summary>
     public class UnityDialogManager : IDialogManager
     {
-        private const string ResourceRoot = "Game/";
-        private const string CanvasPath = "Game/UI/DialogCanvas";
+        private const string CanvasPath = "EngineXForUnity/UI/DialogCanvas";
 
         private readonly Canvas _canvas = Object.Instantiate(Resources.Load<Canvas>(CanvasPath));
-        private readonly Dictionary<string, IDialog> _dialogs = new Dictionary<string, IDialog>();
+
+        private readonly Dictionary<string, (AssetHandler<GameObject>, UnityDialog)> _dialogs =
+            new Dictionary<string, (AssetHandler<GameObject>, UnityDialog)>();
 
         public IDialog Show(string name)
         {
-            if (_dialogs.TryGetValue(name, out var dialog))
+            if (_dialogs.TryGetValue(name, out var tuple))
             {
-                return dialog;
+                return tuple.Item2;
             }
-            var prefab = Resources.Load<GameObject>(ResourceRoot + name);
-            if (prefab == null)
+            _dialogs[name] = default;
+            _ = LoadDialog(name);
+            return null;
+        }
+
+        private async Task LoadDialog(string name)
+        {
+            var handler = await AssetLoader.LoadAsset<GameObject>($"Assets/Game/Addressable/UI/{name}.prefab");
+            if (!_dialogs.ContainsKey(name))
             {
-                Debug.LogError("Can't find UI Prefab: " + name);
-                return null;
+                handler.Release();
+                return;
             }
-            var instance = Object.Instantiate(prefab, _canvas.transform);
-            instance.name = name;
-            dialog = new UnityDialog(instance);
-            _dialogs.Add(name, dialog);
-            return dialog;
+            var instance = Object.Instantiate(handler.Asset, _canvas.transform);
+            _dialogs[name] = (handler, new UnityDialog(instance));
+        }
+
+        public void Close(string name)
+        {
+            if (!_dialogs.TryGetValue(name, out var tuple))
+            {
+                return;
+            }
+            Object.Destroy(tuple.Item2.Obj);
+            tuple.Item1.Release();
+            _dialogs.Remove(name);
         }
     }
 }

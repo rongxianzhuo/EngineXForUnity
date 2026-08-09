@@ -13,13 +13,14 @@ namespace EngineXForUnity.UI
     /// </summary>
     public class UnityDialog : IDialog
     {
-        private readonly GameObject _gameObject;
+        internal GameObject Obj { get; private set; }
+
         private readonly Dictionary<string, IUiElement> _index = new Dictionary<string, IUiElement>();
 
         public UnityDialog(GameObject gameObject)
         {
-            _gameObject = gameObject;
-            BuildIndex(_gameObject.transform);
+            Obj = gameObject;
+            BuildIndex(Obj.transform);
         }
 
         public T GetChild<T>(string name) where T : IUiElement
@@ -31,11 +32,6 @@ namespace EngineXForUnity.UI
             return _index.TryGetValue(name, out var element) ? (T)element : default;
         }
 
-        public void Close()
-        {
-            Object.Destroy(_gameObject);
-        }
-
         private void BuildIndex(Transform node)
         {
             var rawName = node.name;
@@ -44,7 +40,7 @@ namespace EngineXForUnity.UI
                 var key = rawName.Substring(1);
                 if (_index.ContainsKey(key))
                 {
-                    Debug.LogWarning($"[UnityDialog] {_gameObject.name} 中存在重复的可寻址节点名: ${key}");
+                    Debug.LogWarning($"[UnityDialog] {Obj.name} 中存在重复的可寻址节点名: ${key}");
                 }
                 var text = node.GetComponent<TextMeshProUGUI>();
                 if (text != null)
