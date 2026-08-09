@@ -1,6 +1,5 @@
 using EngineX.ECS;
 using EngineX.UI;
-using EngineXForUnity.AssetLoader;
 using EngineXForUnity.Demo;
 using EngineXForUnity.Systems;
 using EngineXForUnity.UI;

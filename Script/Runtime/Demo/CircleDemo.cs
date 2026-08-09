@@ -1,3 +1,4 @@
+using System;
 using EngineX.Baseline.FixedPoint;
 using EngineX.ECS;
 using EngineX.ECS.Components;
@@ -16,7 +17,7 @@ namespace EngineXForUnity.Demo
 
     public struct OrbitJob : IJobParallelForBatch
     {
-        public NativeArray<ChunkHandle> Chunks;
+        public Chunk[] Chunks;
         public FP AngularSpeed;
         public FP DeltaTime;
 
@@ -25,7 +26,7 @@ namespace EngineXForUnity.Demo
             var step = EngineXMath.Quaternion.AngleAxis(AngularSpeed * DeltaTime * FP.Rad2Deg, EngineXMath.Vector3.Up).Normalized;
             for (int i = startIndex; i < startIndex + count; i++)
             {
-                var chunk = Chunks[i].Chunk;
+                var chunk = Chunks[i];
                 for (int e = 0; e < chunk.Count; e++)
                 {
                     ref var t = ref chunk.GetComponentRef<TransformData>(e);
@@ -45,7 +46,7 @@ namespace EngineXForUnity.Demo
         private EntityQuery _query;
         public JobHandle Handle;
         public FP DeltaTime = FP.One / 50;
-        private NativeArray<ChunkHandle> _chunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
+        private Chunk[] _chunks = Array.Empty<Chunk>();
 
         public void OnCreate(ref SystemState state)
         {
@@ -57,8 +58,7 @@ namespace EngineXForUnity.Demo
             var needed = _query.CalculateChunkCount();
             if (_chunks.Length != needed)
             {
-                _chunks.Dispose();
-                _chunks = new NativeArray<ChunkHandle>(needed, Allocator.Persistent);
+                _chunks = new Chunk[needed];
             }
             _query.ToChunkArray(_chunks);
             Handle = JobSystem.ScheduleParallel(
@@ -75,15 +75,14 @@ namespace EngineXForUnity.Demo
         public void OnDestroy(ref SystemState state)
         {
             state.Dependency.Complete();
-            _chunks.Dispose();
         }
     }
 
     public class CircleDemo : IGame
     {
-        private const string SphereResourcePath = "Demo/Sphere";
-        private const string CubeResourcePath = "Demo/Cube";
-        private const string MaterialResourcePath = "Demo/BaseMaterial";
+        private const long SphereResourcePath = 1;
+        private const long CubeResourcePath = 2;
+        private const long MaterialResourcePath = 3;
 
         private readonly World _world = new World();
         private readonly SystemsGroup _group = new SystemsGroup();
@@ -107,7 +106,7 @@ namespace EngineXForUnity.Demo
                     new EngineXMath.Vector3(FP.Zero, angle * FP.Rad2Deg, FP.Zero),
                     new EngineXMath.Vector3(scale, scale, scale)));
                 // 球体与正方体间隔排列，验证 RenderData 的 per-entity 资源声明
-                string meshPath = (i % 2) == 0 ? SphereResourcePath : CubeResourcePath;
+                var meshPath = (i % 2) == 0 ? SphereResourcePath : CubeResourcePath;
                 _world.AddComponent(e, new RenderData(meshPath, MaterialResourcePath));
             }
 

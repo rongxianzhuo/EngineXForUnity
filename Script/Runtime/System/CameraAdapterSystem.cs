@@ -1,3 +1,4 @@
+using System;
 using EngineX.Baseline.FixedPoint;
 using EngineX.ECS;
 using EngineX.ECS.Components;
@@ -19,7 +20,7 @@ namespace EngineXForUnity.Systems
         private const float DefaultFar = 1000f;
 
         private EntityQuery _query;
-        private NativeArray<ChunkHandle> _chunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
+        private Chunk[] _chunks = Array.Empty<Chunk>();
         private Camera _camera;
 
         public void OnCreate(ref SystemState state)
@@ -36,18 +37,17 @@ namespace EngineXForUnity.Systems
             var needed = _query.CalculateChunkCount();
             if (_chunks.Length != needed)
             {
-                _chunks.Dispose();
-                _chunks = new NativeArray<ChunkHandle>(needed, Allocator.Persistent);
+                _chunks = new Chunk[needed];
             }
             _query.ToChunkArray(_chunks);
 
-            if (_chunks.Length == 0 || _chunks[0].Chunk.Count == 0)
+            if (_chunks.Length == 0 || _chunks[0].Count == 0)
             {
                 return;
             }
 
-            ref var transform = ref _chunks[0].Chunk.GetComponentRef<TransformData>(0);
-            ref var cameraData = ref _chunks[0].Chunk.GetComponentRef<CameraData>(0);
+            ref var transform = ref _chunks[0].GetComponentRef<TransformData>(0);
+            ref var cameraData = ref _chunks[0].GetComponentRef<CameraData>(0);
 
             _camera.transform.position = UnityConvert.ToVector3(transform.Position);
             _camera.transform.rotation = UnityConvert.ToQuaternion(transform.Rotation);
@@ -60,8 +60,6 @@ namespace EngineXForUnity.Systems
 
         public void OnDestroy(ref SystemState state)
         {
-            _chunks.Dispose();
-            // 相机由场景持有，适配层只同步不销毁
         }
     }
 }

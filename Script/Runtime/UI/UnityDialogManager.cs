@@ -11,8 +11,8 @@ namespace EngineXForUnity.UI
     /// </summary>
     public class UnityDialogManager : IDialogManager
     {
-        private const string ResourceRoot = "Demo/UI/";
-        private const string CanvasPath = "Demo/UI/DialogCanvas";
+        private const string ResourceRoot = "Game/";
+        private const string CanvasPath = "Game/UI/DialogCanvas";
 
         private readonly Canvas _canvas = Object.Instantiate(Resources.Load<Canvas>(CanvasPath));
         private readonly Dictionary<string, IDialog> _dialogs = new Dictionary<string, IDialog>();

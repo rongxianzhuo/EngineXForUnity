@@ -17,7 +17,7 @@ namespace EngineXForUnity.Systems
     public sealed class InputBridgeSystem : ISystem
     {
         private EntityQuery _query;
-        private NativeArray<ChunkHandle> _chunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
+        private Chunk[] _chunks = new Chunk[0];
 
         public void OnCreate(ref SystemState state)
         {
@@ -29,8 +29,7 @@ namespace EngineXForUnity.Systems
             var needed = _query.CalculateChunkCount();
             if (_chunks.Length != needed)
             {
-                _chunks.Dispose();
-                _chunks = new NativeArray<ChunkHandle>(needed, Allocator.Persistent);
+                _chunks = new Chunk[needed];
             }
             _query.ToChunkArray(_chunks);
 
@@ -56,7 +55,7 @@ namespace EngineXForUnity.Systems
 
             for (int i = 0; i < _chunks.Length; i++)
             {
-                var chunk = _chunks[i].Chunk;
+                var chunk = _chunks[i];
                 for (int e = 0; e < chunk.Count; e++)
                 {
                     ref var input = ref chunk.GetComponentRef<InputData>(e);
@@ -68,7 +67,6 @@ namespace EngineXForUnity.Systems
 
         public void OnDestroy(ref SystemState state)
         {
-            _chunks.Dispose();
         }
     }
 }

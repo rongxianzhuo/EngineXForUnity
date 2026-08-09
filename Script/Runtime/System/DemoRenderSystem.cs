@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using EngineX.ECS;
 using EngineX.ECS.Components;
-using EngineX.Jobs;
-using EngineXForUnity.AssetLoader;
+using EngineXForUnity.AssetManagement;
 using EngineXForUnity.Misc;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -19,11 +20,11 @@ namespace EngineXForUnity.Systems
         private const int MaxInstancesPerDraw = 1023;
 
         private EntityQuery _query;
-        private NativeArray<ChunkHandle> _chunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
+        private Chunk[] _chunks = Array.Empty<Chunk>();
 
         // 资源缓存：按 Resources 路径加载一次，之后复用
-        private readonly Dictionary<string, Mesh> _meshCache = new Dictionary<string, Mesh>();
-        private readonly Dictionary<string, Material> _materialCache = new Dictionary<string, Material>();
+        private readonly Dictionary<long, (AssetHandler<GameObject>, Mesh)> _meshCache = new Dictionary<long, (AssetHandler<GameObject>, Mesh)>();
+        private readonly Dictionary<long, AssetHandler<Material>> _materialCache = new Dictionary<long, AssetHandler<Material>>();
         private readonly HashSet<string> _missingWarned = new HashSet<string>();
 
         private readonly Matrix4x4[] _drawBuffer = new Matrix4x4[MaxInstancesPerDraw];
@@ -64,8 +65,7 @@ namespace EngineXForUnity.Systems
             var needed = _query.CalculateChunkCount();
             if (_chunks.Length != needed)
             {
-                _chunks.Dispose();
-                _chunks = new NativeArray<ChunkHandle>(needed, Allocator.Persistent);
+                _chunks = new Chunk[needed];
             }
             _query.ToChunkArray(_chunks);
 
@@ -73,14 +73,14 @@ namespace EngineXForUnity.Systems
             var batches = new Dictionary<BatchKey, List<Matrix4x4>>();
             for (int i = 0; i < _chunks.Length; i++)
             {
-                var chunk = _chunks[i].Chunk;
+                var chunk = _chunks[i];
                 for (int e = 0; e < chunk.Count; e++)
                 {
                     ref var t = ref chunk.GetComponentRef<TransformData>(e);
                     ref var render = ref chunk.GetComponentRef<RenderData>(e);
 
-                    var mesh = LoadMesh(render.MeshPath);
-                    var material = LoadMaterial(render.MaterialPath);
+                    var mesh = GetMesh(render.MeshAssetId);
+                    var material = GetMaterial(render.MaterialAssetId);
                     if (mesh == null || material == null)
                     {
                         continue; // 资源缺失已告警，跳过该实例
@@ -114,51 +114,42 @@ namespace EngineXForUnity.Systems
 
         public void OnDestroy(ref SystemState state)
         {
-            _chunks.Dispose();
         }
 
         // ==================== Resources 加载（带缓存） ====================
 
-        private Mesh LoadMesh(string path)
+        private Mesh GetMesh(long assetId)
         {
-            if (string.IsNullOrEmpty(path))
+            if (_meshCache.TryGetValue(assetId, out var tuple))
             {
-                return null;
+                return tuple.Item2;
             }
-            if (!_meshCache.TryGetValue(path, out var mesh))
-            {
-                mesh = ResourceLoader.LoadMesh(path);
-                _meshCache[path] = mesh;
-                if (mesh == null && _missingWarned.Add("Mesh:" + path))
-                {
-                    Debug.LogError($"[DemoRenderSystem] 找不到 Mesh 资源: {path}（请确认 Assets/Resources/{path} 下存在）");
-                }
-            }
-            return mesh;
+            _meshCache[assetId] = default;
+            _ = LoadMesh(assetId);
+            return null;
         }
 
-        private Material LoadMaterial(string path)
+        private async Task LoadMesh(long assetId)
         {
-            if (string.IsNullOrEmpty(path))
+            var handler = await AssetLoader.LoadAsset<GameObject>($"Assets/Game/Addressable/{assetId}.prefab");
+            _meshCache[assetId] = (handler, handler.Asset.GetComponent<MeshFilter>().sharedMesh);
+        }
+
+        private Material GetMaterial(long assetId)
+        {
+            if (_materialCache.TryGetValue(assetId, out var handler))
             {
-                return null;
+                return handler.Asset;
             }
-            if (!_materialCache.TryGetValue(path, out var material))
-            {
-                material = ResourceLoader.Load<Material>(path);
-                _materialCache[path] = material;
-                if (material == null)
-                {
-                    if (_missingWarned.Add("Material:" + path))
-                    {
-                        Debug.LogError($"[DemoRenderSystem] 找不到 Material 资源: {path}（请确认 Assets/Resources/{path} 下存在）");
-                    }
-                    return null;
-                }
-                // 实例化渲染要求材质开启 GPU Instancing（运行时修改不落盘）
-                material.enableInstancing = true;
-            }
-            return material;
+            _materialCache[assetId] = default;
+            _ = LoadMaterial(assetId);
+            return null;
+        }
+
+        private async Task LoadMaterial(long assetId)
+        {
+            var handler = await AssetLoader.LoadAsset<Material>($"Assets/Game/Addressable/{assetId}.mat");
+            _materialCache[assetId] = handler;
         }
 
         // ==================== 定点数 → Unity 转换（见 UnityConvert） ====================

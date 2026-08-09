@@ -1,3 +1,4 @@
+using System;
 using EngineX.Baseline.FixedPoint;
 using EngineX.ECS;
 using EngineX.ECS.Components;
@@ -18,8 +19,8 @@ namespace EngineXForUnity.Systems
 
         private EntityQuery _inputQuery;
         private EntityQuery _cameraQuery;
-        private NativeArray<ChunkHandle> _inputChunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
-        private NativeArray<ChunkHandle> _cameraChunks = new NativeArray<ChunkHandle>(0, Allocator.Persistent);
+        private Chunk[] _inputChunks = Array.Empty<Chunk>();
+        private Chunk[] _cameraChunks = Array.Empty<Chunk>();
 
         public void OnCreate(ref SystemState state)
         {
@@ -31,11 +32,11 @@ namespace EngineXForUnity.Systems
         {
             ResizeIfNeeded(ref _inputChunks, _inputQuery);
             _inputQuery.ToChunkArray(_inputChunks);
-            if (_inputChunks.Length == 0 || _inputChunks[0].Chunk.Count == 0)
+            if (_inputChunks.Length == 0 || _inputChunks[0].Count == 0)
             {
                 return; // 游戏侧未声明输入实体
             }
-            ref var input = ref _inputChunks[0].Chunk.GetComponentRef<InputData>(0);
+            ref var input = ref _inputChunks[0].GetComponentRef<InputData>(0);
             if (input.Horizontal == FP.Zero && input.Vertical == FP.Zero)
             {
                 return;
@@ -43,11 +44,11 @@ namespace EngineXForUnity.Systems
 
             ResizeIfNeeded(ref _cameraChunks, _cameraQuery);
             _cameraQuery.ToChunkArray(_cameraChunks);
-            if (_cameraChunks.Length == 0 || _cameraChunks[0].Chunk.Count == 0)
+            if (_cameraChunks.Length == 0 || _cameraChunks[0].Count == 0)
             {
                 return; // 游戏侧未声明相机实体
             }
-            ref var transform = ref _cameraChunks[0].Chunk.GetComponentRef<TransformData>(0);
+            ref var transform = ref _cameraChunks[0].GetComponentRef<TransformData>(0);
 
             // 相机朝向投影到水平面（保持平移不改变高度）
             var forward = transform.Rotation * EngineXMath.Vector3.Forward;
@@ -70,17 +71,14 @@ namespace EngineXForUnity.Systems
 
         public void OnDestroy(ref SystemState state)
         {
-            _inputChunks.Dispose();
-            _cameraChunks.Dispose();
         }
 
-        private static void ResizeIfNeeded(ref NativeArray<ChunkHandle> chunks, EntityQuery query)
+        private static void ResizeIfNeeded(ref Chunk[] chunks, EntityQuery query)
         {
             var needed = query.CalculateChunkCount();
             if (chunks.Length != needed)
             {
-                chunks.Dispose();
-                chunks = new NativeArray<ChunkHandle>(needed, Allocator.Persistent);
+                chunks = new Chunk[needed];
             }
         }
     }
