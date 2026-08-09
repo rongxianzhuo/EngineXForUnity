@@ -6,11 +6,6 @@ using UnityEngine.UI;
 
 namespace EngineXForUnity.UI
 {
-    /// <summary>
-    /// Unity 实现的 Dialog：包装 UGUI prefab 实例，按名递归索引子树中的
-    /// TextMeshProUGUI/Image/Button 元素，提供 GetChild/SetVisible/Dispose。
-    /// Dispose 幂等，可重复调用。
-    /// </summary>
     public class UnityDialog : IDialog
     {
         internal GameObject Obj { get; private set; }

@@ -7,10 +7,6 @@ using UnityEngine.UI;
 
 namespace EngineXForUnity.UI
 {
-    /// <summary>
-    /// Unity 实现的 DialogManager：按名称从 Resources/UI/ 加载 prefab，
-    /// 实例化到 Canvas 下，返回包装后的 UnityDialog。
-    /// </summary>
     public class UnityDialogManager : IDialogManager
     {
         private const string CanvasPath = "EngineXForUnity/UI/DialogCanvas";
